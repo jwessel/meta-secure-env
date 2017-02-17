@@ -16,6 +16,7 @@ SRC_URI += " \
     file://chainloader-Don-t-check-empty-section-in-file-like-..patch \
     file://chainloader-Actually-find-the-relocations-correctly-.patch \
     file://Fix-32-bit-build-failures.patch \
+    file://add-get_efivar-command-to-grub.patch \
     file://grub.cfg \
 "
 
@@ -72,15 +73,19 @@ do_install_append_class-target() {
     # certain hardware, e.g, Intel NUC5i3MYHE, doedn't support to display a
     # customized BIOS boot option used to launch LockDown.efi.
     # Note that shim loader supports to automatically launch LockDown.efi.
-    [ x"${UEFI_SB}" = x"1" ] && [ x"${MOK_SB}" != x"1" ] &&
-        ! grep -q "Automatic Certificate Provision" $cfg &&
-            cat >> $cfg <<_EOF
+    if [ x"${UEFI_SB}" = x"1" ] && ! grep -q "Automatic Certificate Provision" $cfg ; then
+            cat >> $cfg.tmp <<_EOF
+get_efivar -s SECURE_OFF SetupMode
 
-menuentry 'Automatic Certificate Provision' {
-    chainloader /EFI/BOOT/LockDown.efi
- }
+  if [ "\$SECURE_OFF" = 01 ] ; then
+     menuentry 'Automatic Certificate Provision' {
+        chainloader /EFI/BOOT/LockDown.efi
+    }
+  fi
 _EOF
-
+            cat $cfg >> $cfg.tmp
+            mv $cfg.tmp $cfg
+    fi
     install -d ${D}${EFI_BOOT_PATH}
     install -m 0600 $cfg "${D}${EFI_BOOT_PATH}/grub.cfg"
 }
