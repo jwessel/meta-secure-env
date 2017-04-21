@@ -19,7 +19,7 @@ if [ "${unprovisioned}" = "1" ]; then
     fi
 
     # This menu will be hidden as long as the provision succeeds.
-    menuentry "Automatic Certificate Provision" {
+    menuentry "Automatic Certificate Provision" --unrestricted {
         set provision_failed="0"
         save_env provision_failed
 

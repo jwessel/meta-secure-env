@@ -21,21 +21,19 @@ booting unsigned kernel.
 
 Signed-off-by: Lans Zhang <jia.zhang@windriver.com>
 ---
- grub-core/Makefile.core.def    |   6 ++
- grub-core/commands/boot.c      |  14 +++-
- grub-core/gfxmenu/gui_label.c  |  39 +++++++++--
- grub-core/lib/efi/mok2verify.c | 146 +++++++++++++++++++++++++++++++++++++++++
- grub-core/loader/i386/linux.c  |  80 ++++++++++++++++++++++
- grub-core/normal/main.c        |  54 +++++++++++++--
- grub-core/normal/menu.c        |  29 +++++---
- grub-core/normal/menu_text.c   |  32 ++++++---
- include/grub/efi/mok2verify.h  |  42 ++++++++++++
- 9 files changed, 413 insertions(+), 29 deletions(-)
+ grub-core/Makefile.core.def    |    6 +
+ grub-core/commands/boot.c      |   14 +++
+ grub-core/gfxmenu/gui_label.c  |   39 ++++++++--
+ grub-core/lib/efi/mok2verify.c |  146 +++++++++++++++++++++++++++++++++++++++++
+ grub-core/loader/i386/linux.c  |   80 ++++++++++++++++++++++
+ grub-core/normal/main.c        |   54 ++++++++++++++-
+ grub-core/normal/menu.c        |    3 
+ grub-core/normal/menu_text.c   |   32 ++++++--
+ include/grub/efi/mok2verify.h  |   42 +++++++++++
+ 9 files changed, 395 insertions(+), 21 deletions(-)
  create mode 100644 grub-core/lib/efi/mok2verify.c
  create mode 100644 include/grub/efi/mok2verify.h
 
-diff --git a/grub-core/Makefile.core.def b/grub-core/Makefile.core.def
-index e9e1483..8e72251 100644
 --- a/grub-core/Makefile.core.def
 +++ b/grub-core/Makefile.core.def
 @@ -1434,6 +1434,12 @@ module = {
@@ -51,8 +49,6 @@ index e9e1483..8e72251 100644
    name = mmap;
    common = mmap/mmap.c;
    x86 = mmap/i386/uppermem.c;
-diff --git a/grub-core/commands/boot.c b/grub-core/commands/boot.c
-index 91ec87d..5cddbb6 100644
 --- a/grub-core/commands/boot.c
 +++ b/grub-core/commands/boot.c
 @@ -24,6 +24,9 @@
@@ -83,8 +79,6 @@ index 91ec87d..5cddbb6 100644
  
    if (grub_loader_flags & GRUB_LOADER_FLAG_NORETURN)
      grub_machine_fini ();
-diff --git a/grub-core/gfxmenu/gui_label.c b/grub-core/gfxmenu/gui_label.c
-index 637578f..4a94180 100644
 --- a/grub-core/gfxmenu/gui_label.c
 +++ b/grub-core/gfxmenu/gui_label.c
 @@ -23,6 +23,9 @@
@@ -97,7 +91,7 @@ index 637578f..4a94180 100644
  
  static const char *align_options[] =
  {
-@@ -180,15 +183,37 @@ label_set_property (void *vself, const char *name, const char *value)
+@@ -180,15 +183,37 @@ label_set_property (void *vself, const c
        else
  	{
  	   if (grub_strcmp (value, "@KEYMAP_LONG@") == 0)
@@ -142,9 +136,6 @@ index 637578f..4a94180 100644
  	   /* FIXME: Add more templates here if needed.  */
  	  self->template = grub_strdup (value);
  	  self->text = grub_xasprintf (value, self->value);
-diff --git a/grub-core/lib/efi/mok2verify.c b/grub-core/lib/efi/mok2verify.c
-new file mode 100644
-index 0000000..a712190
 --- /dev/null
 +++ b/grub-core/lib/efi/mok2verify.c
 @@ -0,0 +1,146 @@
@@ -294,8 +285,6 @@ index 0000000..a712190
 +
 +  return GRUB_ERR_NONE;
 +}
-diff --git a/grub-core/loader/i386/linux.c b/grub-core/loader/i386/linux.c
-index e2425c8..5a12444 100644
 --- a/grub-core/loader/i386/linux.c
 +++ b/grub-core/loader/i386/linux.c
 @@ -34,6 +34,9 @@
@@ -364,7 +353,7 @@ index e2425c8..5a12444 100644
  static grub_err_t
  grub_cmd_linux (grub_command_t cmd __attribute__ ((unused)),
  		int argc, char *argv[])
-@@ -687,6 +739,9 @@ grub_cmd_linux (grub_command_t cmd __attribute__ ((unused)),
+@@ -687,6 +739,9 @@ grub_cmd_linux (grub_command_t cmd __att
        goto fail;
      }
  
@@ -374,7 +363,7 @@ index e2425c8..5a12444 100644
    file = grub_file_open (argv[0]);
    if (! file)
      goto fail;
-@@ -1132,6 +1187,26 @@ grub_cmd_initrd (grub_command_t cmd __attribute__ ((unused)),
+@@ -1132,6 +1187,26 @@ grub_cmd_initrd (grub_command_t cmd __at
  			argv[i]);
  	  goto fail;
  	}
@@ -401,7 +390,7 @@ index e2425c8..5a12444 100644
        ptr += cursize;
        grub_memset (ptr, 0, ALIGN_UP_OVERHEAD (cursize, 4));
        ptr += ALIGN_UP_OVERHEAD (cursize, 4);
-@@ -1149,6 +1224,11 @@ grub_cmd_initrd (grub_command_t cmd __attribute__ ((unused)),
+@@ -1149,6 +1224,11 @@ grub_cmd_initrd (grub_command_t cmd __at
      grub_file_close (files[i]);
    grub_free (files);
  
@@ -413,8 +402,6 @@ index e2425c8..5a12444 100644
    return grub_errno;
  }
  
-diff --git a/grub-core/normal/main.c b/grub-core/normal/main.c
-index 13473ec..b997a08 100644
 --- a/grub-core/normal/main.c
 +++ b/grub-core/normal/main.c
 @@ -32,6 +32,9 @@
@@ -427,7 +414,7 @@ index 13473ec..b997a08 100644
  
  GRUB_MOD_LICENSE ("GPLv3+");
  
-@@ -226,13 +229,20 @@ grub_normal_init_page (struct grub_term_output *term)
+@@ -226,13 +229,20 @@ grub_normal_init_page (struct grub_term_
  {
    grub_ssize_t msg_len;
    int posx;
@@ -449,7 +436,7 @@ index 13473ec..b997a08 100644
    msg_formatted = grub_xasprintf (msg, PACKAGE_VERSION);
    if (!msg_formatted)
      return;
-@@ -294,6 +304,24 @@ grub_normal_execute (const char *config, int nested, int batch)
+@@ -294,6 +304,24 @@ grub_normal_execute (const char *config,
  
    if (config)
      {
@@ -474,7 +461,7 @@ index 13473ec..b997a08 100644
        menu = read_config_file (config);
  
        /* Ignore any error.  */
-@@ -317,7 +345,10 @@ grub_enter_normal_mode (const char *config)
+@@ -317,7 +345,10 @@ grub_enter_normal_mode (const char *conf
  {
    nested_level++;
    grub_normal_execute (config, 0, 0);
@@ -486,7 +473,7 @@ index 13473ec..b997a08 100644
    nested_level--;
    if (grub_normal_exit_level)
      grub_normal_exit_level--;
-@@ -352,6 +383,18 @@ grub_cmd_normal (struct grub_command *cmd __attribute__ ((unused)),
+@@ -352,6 +383,18 @@ grub_cmd_normal (struct grub_command *cm
      grub_enter_normal_mode (argv[0]);
  
  quit:
@@ -519,8 +506,6 @@ index 13473ec..b997a08 100644
  
    /* Reload terminal colors when these variables are written to.  */
    grub_register_variable_hook ("color_normal", NULL, grub_env_write_color_normal);
-diff --git a/grub-core/normal/menu.c b/grub-core/normal/menu.c
-index 7e0a158..987278c 100644
 --- a/grub-core/normal/menu.c
 +++ b/grub-core/normal/menu.c
 @@ -32,6 +32,9 @@
@@ -533,45 +518,6 @@ index 7e0a158..987278c 100644
  
  /* Time to delay after displaying an error message about a default/fallback
     entry failing to boot.  */
-@@ -633,18 +636,28 @@ run_menu (grub_menu_t menu, int nested, int *auto_boot)
- 	      break;
- 
- 	    case 'c':
--	      menu_fini ();
--	      grub_cmdline_run (1);
--	      goto refresh;
-+#ifdef GRUB_MACHINE_EFI
-+	      if (!grub_is_secured ())
-+#endif
-+		{
-+		  menu_fini ();
-+		  grub_cmdline_run (1);
-+		  goto refresh;
-+		}
- 
- 	    case 'e':
--	      menu_fini ();
-+#ifdef GRUB_MACHINE_EFI
-+	      if (!grub_is_secured ())
-+#endif
- 		{
--		  grub_menu_entry_t e = grub_menu_get_entry (menu, current_entry);
--		  if (e)
--		    grub_menu_entry_run (e);
-+		  menu_fini ();
-+		    {
-+		      grub_menu_entry_t e = grub_menu_get_entry (menu, current_entry);
-+		      if (e)
-+			grub_menu_entry_run (e);
-+		    }
-+		  goto refresh;
- 		}
--	      goto refresh;
- 
- 	    default:
- 	      {
-diff --git a/grub-core/normal/menu_text.c b/grub-core/normal/menu_text.c
-index 1687c28..f2587d5 100644
 --- a/grub-core/normal/menu_text.c
 +++ b/grub-core/normal/menu_text.c
 @@ -27,6 +27,9 @@
@@ -584,7 +530,7 @@ index 1687c28..f2587d5 100644
  
  static grub_uint8_t grub_color_menu_normal;
  static grub_uint8_t grub_color_menu_highlight;
-@@ -179,19 +182,32 @@ command-line or ESC to discard edits and return to the GRUB menu."),
+@@ -179,19 +182,32 @@ command-line or ESC to discard edits and
  
        if (nested)
  	{
@@ -625,9 +571,6 @@ index 1687c28..f2587d5 100644
  	}	
      }
    return ret;
-diff --git a/include/grub/efi/mok2verify.h b/include/grub/efi/mok2verify.h
-new file mode 100644
-index 0000000..cc9c1d3
 --- /dev/null
 +++ b/include/grub/efi/mok2verify.h
 @@ -0,0 +1,42 @@
@@ -673,6 +616,3 @@ index 0000000..cc9c1d3
 +EXPORT_FUNC (grub_verify_file) (const char *path);
 +
 +#endif	/* ! GRUB_EFI_MOK2_VERIFY_HEADER */
--- 
-2.7.4
-
